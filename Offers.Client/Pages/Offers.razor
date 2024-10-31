@@ -1,0 +1,123 @@
+﻿@page "/"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="OpenCreateDialog">Add Offer</MudButton>
+    </MudItem>
+    <MudItem xs="12">
+        <MudTable Items="@offers" Striped="true" Hover="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Offer ID</MudTh>
+                <MudTh>Offer Date</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Offer ID">@context.OfferId</MudTd>
+                <MudTd DataLabel="Offer Date">@context.OfferDate.ToShortDateString()</MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudButton Color="Color.Info" @onclick="@(() => OpenEditDialog(@context))">Edit</MudButton>
+                    <MudButton Color="Color.Error" @onclick="@(() => DeleteOffer(@context.OfferId))">Delete</MudButton>
+                    <MudButton Color="Color.Info" OnClick="@(() => ViewOrderItems(@context.OfferId))">Items</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudItem>
+</MudGrid>
+
+<MudDialog @bind-Open="_isDialogOpen">
+    <DialogContent>
+        @if (_isEditMode)
+        {
+            <MudTextField @bind-Value="_selectedOffer.OfferDate" Label="Offer Date" Type="Date" />
+        }
+        else
+        {
+            <MudTextField @bind-Value="_newOffer.OfferDate" Label="Offer Date" Type="Date" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton @onclick="CloseDialog" Color="Color.Secondary">Cancel</MudButton>
+        <MudButton @onclick="_isEditMode ? UpdateOffer : CreateOffer" Color="Color.Primary">@(_isEditMode ? "Update" : "Create")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<OfferDto> offers = new();
+    private bool _isDialogOpen;
+    private bool _isEditMode;
+    private OfferDto _newOffer = new();
+    private OfferDto _selectedOffer;
+    private int _totalCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOffers();
+    }
+
+    private async Task LoadOffers()
+    {
+        var response = await Http.GetFromJsonAsync<GetOffersResponse>("/offers");
+        offers = response?.Offers ?? new();
+    }
+
+    private void OpenCreateDialog()
+    {
+        _isDialogOpen = true;
+        _isEditMode = false;
+        _newOffer = new OfferDto(); // Reset to create a new offer
+    }
+
+    private void OpenEditDialog(OfferDto offer)
+    {
+        _selectedOffer = offer;
+        _newOffer = new OfferDto
+            {
+                OfferId = offer.OfferId,
+                OfferDate = offer.OfferDate
+            };
+        _isEditMode = true;
+        _isDialogOpen = true;
+    }
+
+    private async Task CreateOffer()
+    {
+        var response = await Http.PostAsJsonAsync("/offers", _newOffer);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadOffers();
+        }
+        CloseDialog();
+    }
+
+    private async Task UpdateOffer()
+    {
+        var response = await Http.PutAsJsonAsync($"/offers", _newOffer);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadOffers();
+        }
+        CloseDialog();
+    }
+
+    private async Task DeleteOffer(int offerId)
+    {
+        var response = await Http.DeleteAsync($"/offers/{offerId}");
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadOffers();
+        }
+    }
+
+    private void CloseDialog()
+    {
+        _isDialogOpen = false;
+        _newOffer = new OfferDto(); 
+    }
+
+    private void ViewOrderItems(int offerId)
+    {
+        NavigationManager.NavigateTo($"/offers/{offerId}/items");
+    }
+}

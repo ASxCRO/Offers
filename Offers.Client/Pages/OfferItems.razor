@@ -1,0 +1,130 @@
+﻿@page "/offers/{OfferId:int}/items"
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudButton Color="Color.Primary" OnClick="OpenCreateDialog">Add Offer Item</MudButton>
+        <MudTable Items="@orderItems" Striped="true" Hover="true" Bordered="true" PaginationSize="5"
+                  @bind-CurrentPage="@currentPage" PageSize="@pageSize" TotalItems="@totalOfferItems">
+            <HeaderContent>
+                <MudTh>Item ID</MudTh>
+                <MudTh>Article Name</MudTh>
+                <MudTh>Unit Price</MudTh>
+                <MudTh>Quantity</MudTh>
+                <MudTh>Total Price</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.ItemId</MudTd>
+                <MudTd>@context.ArticleName</MudTd>
+                <MudTd>@context.UnitPrice.ToString("C")</MudTd>
+                <MudTd>@context.Quantity</MudTd>
+                <MudTd>@context.TotalPrice.ToString("C")</MudTd>
+                <MudTd>
+                    <MudButton Color="Color.Primary" OnClick="@(() => OpenEditDialog(@context))">Edit</MudButton>
+                    <MudButton Color="Color.Secondary" OnClick="@(() => DeleteOfferItem(@context.ItemId))">Delete</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudItem>
+</MudGrid>
+
+<MudPagination @bind-Page="currentPage" PageCount="totalPages" />
+
+<MudDialog @bind-Open="_isDialogOpen">
+    <DialogContent>
+        <MudTextField @bind-Value="_selectedOfferItem.ArticleName" Label="Article Name" />
+        <MudTextField @bind-Value="_selectedOfferItem.UnitPrice" Label="Unit Price" Type="Number" />
+        <MudTextField @bind-Value="_selectedOfferItem.Quantity" Label="Quantity" Type="Number" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton @onclick="CloseDialog" Color="Color.Secondary">Cancel</MudButton>
+        <MudButton @onclick="_isEditMode ? UpdateOfferItem : CreateOfferItem" Color="Color.Primary">@(_isEditMode ? "Update" : "Create")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public int OfferId { get; set; }
+
+    private List<OfferItemDto> orderItems = new();
+    private bool _isDialogOpen;
+    private bool _isEditMode;
+    private OfferItemDto _selectedOfferItem = new(); // Initialize with a new instance
+    private int currentPage = 1;
+    private const int pageSize = 5; // Number of items per page
+    private int totalOfferItems;
+    private int totalPages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOfferItems();
+    }
+
+    private async Task LoadOfferItems()
+    {
+        var response = await Http.GetFromJsonAsync<GetOfferItemsResponse>($"/offers/{OfferId}/items?pageNumber={currentPage}&pageSize={pageSize}");
+        if (response != null)
+        {
+            orderItems = response.OfferItems;
+            totalOfferItems = response.TotalCount;
+            totalPages = (int)Math.Ceiling((double)totalOfferItems / pageSize);
+        }
+    }
+
+    private async Task OnPageChanged(int newPage)
+    {
+        currentPage = newPage;
+        await LoadOfferItems();
+    }
+
+    private void OpenCreateDialog()
+    {
+        _selectedOfferItem = new OfferItemDto(); // Create a new instance for adding
+        _isEditMode = false;
+        _isDialogOpen = true;
+    }
+
+    private void OpenEditDialog(OfferItemDto orderItem)
+    {
+        _selectedOfferItem = orderItem;
+        _isEditMode = true;
+        _isDialogOpen = true;
+    }
+
+    private async Task CreateOfferItem()
+    {
+        var response = await Http.PostAsJsonAsync($"/offers/{OfferId}/items", _selectedOfferItem);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadOfferItems();
+        }
+        CloseDialog();
+    }
+
+    private async Task UpdateOfferItem()
+    {
+        var response = await Http.PutAsJsonAsync($"/items", _selectedOfferItem);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadOfferItems();
+        }
+        CloseDialog();
+    }
+
+    private async Task DeleteOfferItem(int itemId)
+    {
+        var response = await Http.DeleteAsync($"/items/{itemId}");
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadOfferItems();
+        }
+    }
+
+    private void CloseDialog()
+    {
+        _isDialogOpen = false;
+        _selectedOfferItem = new OfferItemDto();
+    }
+}
