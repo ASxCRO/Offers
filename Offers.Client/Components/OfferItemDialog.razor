@@ -1,0 +1,78 @@
+﻿
+@inherits ComponentBase
+@inject HttpClient Http
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect @bind-Value="OfferItem.ArticleName" Label="Select Article" Required Validation="@articleValidator.Validation">
+            @foreach (var state in _states)
+                {
+                    <MudSelectItem Value="state">@state</MudSelectItem>
+                }
+        </MudSelect>
+        <MudTextField @bind-Value="OfferItem.UnitPrice" Label="Unit Price" Type="Number" Required Validation="@priceValidator.Validation" />
+        <MudTextField @bind-Value="OfferItem.Quantity" Label="Quantity" Type="Number" Required Validation="@quantityValidator.Validation" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary">Submit</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    FluentValueValidator<string> articleValidator = new FluentValueValidator<string>(x => x
+        .NotEmpty()
+    );
+
+    FluentValueValidator<decimal> priceValidator = new FluentValueValidator<decimal>(x => x
+        .NotEmpty()
+        .GreaterThan(0)
+    );
+
+    FluentValueValidator<int> quantityValidator = new FluentValueValidator<int>(x => x
+        .NotEmpty()
+        .GreaterThan(0)
+    );
+
+    private string[] _states =
+       {
+        "Alabama", "Alaska", "Arizona", "Arkansas", "California",
+        "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+        "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas",
+        "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts",
+        "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana",
+        "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
+        "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma",
+        "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+        "Tennessee", "Texas", "Utah", "Vermont", "Virginia",
+        "Washington", "West Virginia", "Wisconsin", "Wyoming"
+    };
+
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public OfferItemDto OfferItem { get; set; } = new();
+    [Parameter] public bool IsEditMode { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        HttpResponseMessage response;
+        if (IsEditMode)
+        {
+            response = await Http.PutAsJsonAsync($"/offeritems", OfferItem);
+        }
+        else
+        {
+            response = await Http.PostAsJsonAsync("/offeritems", OfferItem);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+}
+

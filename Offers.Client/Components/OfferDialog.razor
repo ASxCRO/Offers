@@ -1,0 +1,52 @@
+﻿@inherits ComponentBase
+@inject HttpClient Http
+
+<MudDialog>
+    <DialogContent>
+        <MudDatePicker @bind-Date="Offer.OfferDate" Label="Select Date"
+                       MinDate="new DateTime(2020, 1, 1)"
+                       MaxDate="DateTime.Now"
+                       DisplayFormat="dd.MM.yyyy"
+                       PickerVariant="PickerVariant.Dialog" 
+                       Validation="@Validator.Validation"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">@(IsEditMode ? "Update" : "Create")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    FluentValueValidator<string> Validator = new FluentValueValidator<string>(x => x
+        .NotEmpty());
+
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public OfferDto Offer { get; set; } = new();
+    private bool IsEditMode => Offer.OfferId != 0;
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        HttpResponseMessage response;
+        if (IsEditMode)
+        {
+            response = await Http.PutAsJsonAsync($"/offers", Offer);
+        }
+        else
+        {
+            response = await Http.PostAsJsonAsync("/offers", Offer);
+        }
+
+        if (response.IsSuccessStatusCode)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+}

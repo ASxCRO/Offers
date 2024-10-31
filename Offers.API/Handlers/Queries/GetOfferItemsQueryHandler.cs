@@ -27,7 +27,6 @@ namespace Offers.API.Handlers.Queries
                 ArticleName = i.ArticleName,
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,
-                TotalPrice = i.TotalPrice
             }).ToList();
 
             return new GetOfferItemsResponse(offerItemDtos, count);

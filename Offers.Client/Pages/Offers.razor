@@ -1,8 +1,9 @@
 ﻿@page "/"
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
-<MudGrid>
+<MudGrid Class="p-3">
     <MudItem xs="12">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="OpenCreateDialog">Add Offer</MudButton>
     </MudItem>
@@ -15,41 +16,21 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Offer ID">@context.OfferId</MudTd>
-                <MudTd DataLabel="Offer Date">@context.OfferDate.ToShortDateString()</MudTd>
+                <MudTd DataLabel="Offer Date">@context.OfferDate?.ToString("dd.MM.yyyy")</MudTd>
                 <MudTd DataLabel="Actions">
                     <MudButton Color="Color.Info" @onclick="@(() => OpenEditDialog(@context))">Edit</MudButton>
                     <MudButton Color="Color.Error" @onclick="@(() => DeleteOffer(@context.OfferId))">Delete</MudButton>
-                    <MudButton Color="Color.Info" OnClick="@(() => ViewOrderItems(@context.OfferId))">Items</MudButton>
+                    <MudButton Color="Color.Info" OnClick="@(() => ViewOfferItems(@context.OfferId))">Items</MudButton>
                 </MudTd>
             </RowTemplate>
         </MudTable>
     </MudItem>
 </MudGrid>
 
-<MudDialog @bind-Open="_isDialogOpen">
-    <DialogContent>
-        @if (_isEditMode)
-        {
-            <MudTextField @bind-Value="_selectedOffer.OfferDate" Label="Offer Date" Type="Date" />
-        }
-        else
-        {
-            <MudTextField @bind-Value="_newOffer.OfferDate" Label="Offer Date" Type="Date" />
-        }
-    </DialogContent>
-    <DialogActions>
-        <MudButton @onclick="CloseDialog" Color="Color.Secondary">Cancel</MudButton>
-        <MudButton @onclick="_isEditMode ? UpdateOffer : CreateOffer" Color="Color.Primary">@(_isEditMode ? "Update" : "Create")</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
     private List<OfferDto> offers = new();
-    private bool _isDialogOpen;
-    private bool _isEditMode;
     private OfferDto _newOffer = new();
     private OfferDto _selectedOffer;
-    private int _totalCount;
 
     protected override async Task OnInitializedAsync()
     {
@@ -62,43 +43,30 @@
         offers = response?.Offers ?? new();
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        _isDialogOpen = true;
-        _isEditMode = false;
-        _newOffer = new OfferDto(); // Reset to create a new offer
-    }
+        var parameters = new DialogParameters { { "Offer", new OfferDto() } };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var dialog = DialogService.Show<OfferDialog>("Create Offer", parameters, options);
 
-    private void OpenEditDialog(OfferDto offer)
-    {
-        _selectedOffer = offer;
-        _newOffer = new OfferDto
-            {
-                OfferId = offer.OfferId,
-                OfferDate = offer.OfferDate
-            };
-        _isEditMode = true;
-        _isDialogOpen = true;
-    }
-
-    private async Task CreateOffer()
-    {
-        var response = await Http.PostAsJsonAsync("/offers", _newOffer);
-        if (response.IsSuccessStatusCode)
+        var result = await dialog.Result;
+        if (!result.Canceled)
         {
             await LoadOffers();
         }
-        CloseDialog();
     }
 
-    private async Task UpdateOffer()
+    private async Task OpenEditDialog(OfferDto offer)
     {
-        var response = await Http.PutAsJsonAsync($"/offers", _newOffer);
-        if (response.IsSuccessStatusCode)
+        var parameters = new DialogParameters { { "Offer", offer } };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var dialog = DialogService.Show<OfferDialog>("Edit Offer", parameters, options);
+
+        var result = await dialog.Result;
+        if (!result.Canceled)
         {
             await LoadOffers();
         }
-        CloseDialog();
     }
 
     private async Task DeleteOffer(int offerId)
@@ -110,13 +78,7 @@
         }
     }
 
-    private void CloseDialog()
-    {
-        _isDialogOpen = false;
-        _newOffer = new OfferDto(); 
-    }
-
-    private void ViewOrderItems(int offerId)
+    private void ViewOfferItems(int offerId)
     {
         NavigationManager.NavigateTo($"/offers/{offerId}/items");
     }

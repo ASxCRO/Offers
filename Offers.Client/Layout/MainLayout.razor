@@ -1,22 +1,38 @@
 ﻿@inherits LayoutComponentBase
-<MudThemeProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+
 <MudLayout>
+    @* Required *@
+    <MudThemeProvider />
+    <MudPopoverProvider />
+
+    @* Needed for dialogs *@
+    <MudDialogProvider FullWidth="true"
+                       MaxWidth="MaxWidth.Medium"
+                       CloseButton="true"
+                       BackdropClick="false"
+                       NoHeader="true"
+                       Position="DialogPosition.Center"
+                       CloseOnEscapeKey="true"
+                       BackgroundClass="my-custom-class" 
+                       />
+
+    @* Needed for snackbars *@
+    <MudSnackbarProvider />
     <MudAppBar Color="Color.Primary">
         <MudText Typo="Typo.h6">Offers Management</MudText>
         <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" />
     </MudAppBar>
 
     <MudDrawer Clipped="true" Color="Color.Info" Elevation="1">
         <MudDrawerHeader>Navigation</MudDrawerHeader>
         <MudNavMenu>
-            <MudNavLink Href="/offers">Offers</MudNavLink>
+            <MudNavLink Href="/">Offers</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
 
     <MudMainContent>
-        @Body
+        <div style="padding:3rem;">
+            @Body
+        </div>
     </MudMainContent>
 </MudLayout>

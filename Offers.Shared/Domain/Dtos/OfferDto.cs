@@ -3,6 +3,6 @@
     public class OfferDto
     {
         public int OfferId { get; set; }
-        public DateTime OfferDate { get; set; }
+        public DateTime? OfferDate { get; set; }
     }
 }

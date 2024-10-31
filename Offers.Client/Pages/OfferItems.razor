@@ -1,6 +1,7 @@
 ﻿@page "/offers/{OfferId:int}/items"
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
 <MudGrid>
     <MudItem xs="12">
@@ -32,28 +33,12 @@
 
 <MudPagination @bind-Page="currentPage" PageCount="totalPages" />
 
-<MudDialog @bind-Open="_isDialogOpen">
-    <DialogContent>
-        <MudTextField @bind-Value="_selectedOfferItem.ArticleName" Label="Article Name" />
-        <MudTextField @bind-Value="_selectedOfferItem.UnitPrice" Label="Unit Price" Type="Number" />
-        <MudTextField @bind-Value="_selectedOfferItem.Quantity" Label="Quantity" Type="Number" />
-    </DialogContent>
-    <DialogActions>
-        <MudButton @onclick="CloseDialog" Color="Color.Secondary">Cancel</MudButton>
-        <MudButton @onclick="_isEditMode ? UpdateOfferItem : CreateOfferItem" Color="Color.Primary">@(_isEditMode ? "Update" : "Create")</MudButton>
-    </DialogActions>
-</MudDialog>
-
 @code {
-    [Parameter]
-    public int OfferId { get; set; }
+    [Parameter] public int OfferId { get; set; }
 
     private List<OfferItemDto> orderItems = new();
-    private bool _isDialogOpen;
-    private bool _isEditMode;
-    private OfferItemDto _selectedOfferItem = new(); // Initialize with a new instance
     private int currentPage = 1;
-    private const int pageSize = 5; // Number of items per page
+    private const int pageSize = 5;
     private int totalOfferItems;
     private int totalPages;
 
@@ -79,38 +64,53 @@
         await LoadOfferItems();
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        _selectedOfferItem = new OfferItemDto(); // Create a new instance for adding
-        _isEditMode = false;
-        _isDialogOpen = true;
+        var offerItem = new OfferItemDto();
+        offerItem.OfferId = OfferId;
+        var parameters = new DialogParameters { { "OfferItem", offerItem}, { "IsEditMode", false } };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var dialog = DialogService.Show<OfferItemDialog>("Add Offer Item", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var newItem = result.Data as OfferItemDto;
+            await CreateOfferItem(newItem);
+        }
     }
 
-    private void OpenEditDialog(OfferItemDto orderItem)
+    private async Task OpenEditDialog(OfferItemDto item)
     {
-        _selectedOfferItem = orderItem;
-        _isEditMode = true;
-        _isDialogOpen = true;
+        item.OfferId = OfferId;
+        var parameters = new DialogParameters { { "OfferItem", item }, { "IsEditMode", true } };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var dialog = DialogService.Show<OfferItemDialog>("Edit Offer Item", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var updatedItem = result.Data as OfferItemDto;
+            await UpdateOfferItem(updatedItem);
+        }
     }
 
-    private async Task CreateOfferItem()
+    private async Task CreateOfferItem(OfferItemDto newItem)
     {
-        var response = await Http.PostAsJsonAsync($"/offers/{OfferId}/items", _selectedOfferItem);
+        var response = await Http.PostAsJsonAsync($"/offers/{OfferId}/items", newItem);
         if (response.IsSuccessStatusCode)
         {
             await LoadOfferItems();
         }
-        CloseDialog();
     }
 
-    private async Task UpdateOfferItem()
+    private async Task UpdateOfferItem(OfferItemDto updatedItem)
     {
-        var response = await Http.PutAsJsonAsync($"/items", _selectedOfferItem);
+        var response = await Http.PutAsJsonAsync($"/items", updatedItem);
         if (response.IsSuccessStatusCode)
         {
             await LoadOfferItems();
         }
-        CloseDialog();
     }
 
     private async Task DeleteOfferItem(int itemId)
@@ -120,11 +120,5 @@
         {
             await LoadOfferItems();
         }
-    }
-
-    private void CloseDialog()
-    {
-        _isDialogOpen = false;
-        _selectedOfferItem = new OfferItemDto();
     }
 }

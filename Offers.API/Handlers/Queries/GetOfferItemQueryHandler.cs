@@ -28,7 +28,6 @@ namespace Offers.API.Handlers.Queries
                 ArticleName = item.ArticleName,
                 UnitPrice = item.UnitPrice,
                 Quantity = item.Quantity,
-                TotalPrice = item.TotalPrice
             };
         }
     }
