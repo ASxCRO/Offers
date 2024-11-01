@@ -53,7 +53,7 @@
                 MudDialog.Close(DialogResult.Ok(true));
                 Snackbar.Add("Success", MudBlazor.Severity.Success);
             }
-            else if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable || response.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
                 var validationMessage = await response.Content.ReadAsStringAsync();
                 Snackbar.Add(validationMessage, MudBlazor.Severity.Error);
