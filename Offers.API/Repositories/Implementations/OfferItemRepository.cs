@@ -35,5 +35,10 @@ namespace Offers.API.Repositories.Implementations
             return await _dbConnection.QueryAsync<OfferItem>(sql, parameters);
         }
 
+        public override string GetUpdateFields()
+        {
+            var properties = typeof(OfferItem).GetProperties().Where(p => p.Name != "Id" && p.Name != "TotalPrice");
+            return string.Join(", ", properties.Select(p => $"[{p.Name}] = @{p.Name}"));
+        }
     }
 }

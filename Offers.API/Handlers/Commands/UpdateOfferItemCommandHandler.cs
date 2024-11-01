@@ -27,7 +27,6 @@ namespace Offers.API.Handlers.Commands
                 throw new ArgumentException("Quantity must be greater than 0.");
             }
 
-            // Update properties
             item.OfferId = request.OfferId;
             item.ArticleName = request.ArticleName;
             item.UnitPrice = request.UnitPrice;

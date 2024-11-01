@@ -7,7 +7,7 @@
     
     <MudDialog>
         <DialogContent>
-            <MudSelect @bind-Value="OfferItem.ArticleName" Label="Select Article" Required>
+            <MudSelect @bind-Value="OfferItem.ArticleName" Label="Select Article" Required Variant="Variant.Outlined">
                 @foreach (var state in _states)
                 {
                     <MudSelectItem Value="state">@state</MudSelectItem>

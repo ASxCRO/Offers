@@ -15,6 +15,6 @@ namespace Offers.Shared.Domain.Dtos
 
         [Range(1, int.MaxValue, ErrorMessage = "Quantity must be greater than zero.")]
         public int Quantity { get; set; }
-        public decimal TotalPrice => UnitPrice * Quantity;
+        public decimal TotalPrice { get; set; }
     }
 }

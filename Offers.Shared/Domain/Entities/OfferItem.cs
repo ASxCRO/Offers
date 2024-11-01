@@ -1,4 +1,6 @@
-﻿namespace Offers.Shared.Domain.Models
+﻿using System.Runtime.Serialization;
+
+namespace Offers.Shared.Domain.Models
 {
     public class OfferItem : BaseEntity<int>
     {
@@ -6,5 +8,6 @@
         public string ArticleName { get; set; }
         public decimal UnitPrice { get; set; }
         public int Quantity { get; set; }
+        public decimal TotalPrice { get; set; }
     }
 }

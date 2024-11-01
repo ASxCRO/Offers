@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Offers.API.Repositories.Abstractions;
+using Offers.API.Repositories.Implementations;
 using Offers.Shared.Domain.Dtos;
 using Offers.Shared.Queries;
 
@@ -20,6 +21,7 @@ namespace Offers.API.Handlers.Queries
         {
             var items = await _offerItemRepository.GetItemsByOfferIdAsync(request.OfferId, request.PageNumber, request.PageSize); 
             var count = await _offerItemRepository.CountItemsByOfferIdAsync(request.OfferId); 
+            var totalPrice = await _offerRepository.GetTotalOfferPrice(request.OfferId);
 
             var offerItemDtos = items.Select(i => new OfferItemDto
             {
@@ -27,9 +29,10 @@ namespace Offers.API.Handlers.Queries
                 ArticleName = i.ArticleName,
                 UnitPrice = i.UnitPrice,
                 Quantity = i.Quantity,
+                TotalPrice = i.TotalPrice
             }).ToList();
 
-            return new GetOfferItemsResponse(offerItemDtos, count);
+            return new GetOfferItemsResponse(offerItemDtos, count, totalPrice);
         }
     }
 }

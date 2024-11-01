@@ -4,7 +4,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudText Typo="Typo.h1">Offer number @OfferId</MudText>
+<MudText Typo="Typo.h3">Offer number @OfferId</MudText>
 <br />
 <MudGrid>
     <MudItem xs="12">
@@ -36,7 +36,9 @@
 
 <MudPagination @bind-Page="currentPage" Count="totalPages" SelectedChanged="OnPageChanged" />
 
-@code {
+<MudText Typo="Typo.h6">Total price @totalPrice.ToString("c")</MudText>
+
+    @code {
     [Parameter] public int OfferId { get; set; }
 
     private List<OfferItemDto> offerItems = new();
@@ -44,6 +46,7 @@
     private const int pageSize = 3;
     private int totalOfferItems;
     private int totalPages;
+    private decimal totalPrice;
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,6 +64,7 @@
                 offerItems = offerItemsResponse.OfferItems;
                 totalOfferItems = offerItemsResponse.TotalCount;
                 totalPages = (int)Math.Ceiling((double)totalOfferItems / pageSize);
+                totalPrice = offerItemsResponse.TotalPrice;
             }
             else
             {

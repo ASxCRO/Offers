@@ -50,13 +50,13 @@ namespace Offers.API.Repositories
             await _dbConnection.ExecuteAsync(sql, new { Id = id });
         }
 
-        private string GetUpdateFields()
+        public virtual string GetUpdateFields()
         {
             var properties = typeof(T).GetProperties().Where(p => p.Name != "Id");
             return string.Join(", ", properties.Select(p => $"[{p.Name}] = @{p.Name}"));
         }
 
-        private string GetInsertFields()
+        public virtual string GetInsertFields()
         {
             var properties = typeof(T).GetProperties().Where(p => p.Name != "Id");
             return string.Join(", ", properties.Select(p => $"@{p.Name}"));
