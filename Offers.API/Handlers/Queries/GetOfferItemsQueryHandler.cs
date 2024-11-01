@@ -19,7 +19,7 @@ namespace Offers.API.Handlers.Queries
         public async Task<GetOfferItemsResponse> Handle(GetOfferItemsQuery request, CancellationToken cancellationToken)
         {
             var items = await _offerItemRepository.GetItemsByOfferIdAsync(request.OfferId, request.PageNumber, request.PageSize); 
-            var count = await _offerItemRepository.TotalCountAsync(); 
+            var count = await _offerItemRepository.CountItemsByOfferIdAsync(request.OfferId); 
 
             var offerItemDtos = items.Select(i => new OfferItemDto
             {

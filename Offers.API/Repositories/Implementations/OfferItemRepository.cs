@@ -9,6 +9,12 @@ namespace Offers.API.Repositories.Implementations
     {
         public OfferItemRepository(IDbConnection dbConnection) : base(dbConnection) { }
 
+        public async Task<int> CountItemsByOfferIdAsync(int offerId)
+        {
+            var sql = $"SELECT COUNT(*) FROM [OfferItems] WHERE OfferId = {offerId}";
+            return await _dbConnection.ExecuteScalarAsync<int>(sql);
+        }
+
         public async Task<IEnumerable<OfferItem>> GetItemsByOfferIdAsync(int offerId, int pageNumber, int pageSize)
         {
             var sql = @"

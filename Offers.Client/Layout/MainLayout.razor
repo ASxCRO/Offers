@@ -1,11 +1,9 @@
 ﻿@inherits LayoutComponentBase
 
 <MudLayout>
-    @* Required *@
     <MudThemeProvider />
     <MudPopoverProvider />
 
-    @* Needed for dialogs *@
     <MudDialogProvider FullWidth="true"
                        MaxWidth="MaxWidth.Medium"
                        CloseButton="true"
@@ -16,10 +14,9 @@
                        BackgroundClass="my-custom-class" 
                        />
 
-    @* Needed for snackbars *@
     <MudSnackbarProvider />
     <MudAppBar Color="Color.Primary">
-        <MudText Typo="Typo.h6">Offers Management</MudText>
+        <MudLink Typo="Typo.h6" Href="/" Color="Color.Default" >Offers Management</MudLink>
         <MudSpacer />
     </MudAppBar>
 

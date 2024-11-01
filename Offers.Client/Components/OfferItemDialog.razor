@@ -1,42 +1,34 @@
-﻿
-@inherits ComponentBase
+﻿@inherits ComponentBase
 @inject HttpClient Http
+@inject ISnackbar Snackbar
 
-<MudDialog>
-    <DialogContent>
-        <MudSelect @bind-Value="OfferItem.ArticleName" Label="Select Article" Required Validation="@articleValidator.Validation">
-            @foreach (var state in _states)
+<EditForm Model="OfferItem" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
+    
+    <MudDialog>
+        <DialogContent>
+            <MudSelect @bind-Value="OfferItem.ArticleName" Label="Select Article" Required>
+                @foreach (var state in _states)
                 {
                     <MudSelectItem Value="state">@state</MudSelectItem>
                 }
-        </MudSelect>
-        <MudTextField @bind-Value="OfferItem.UnitPrice" Label="Unit Price" Type="Number" Required Validation="@priceValidator.Validation" />
-        <MudTextField @bind-Value="OfferItem.Quantity" Label="Quantity" Type="Number" Required Validation="@quantityValidator.Validation" />
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
-        <MudButton OnClick="Submit" Color="Color.Primary">Submit</MudButton>
-    </DialogActions>
-</MudDialog>
+            </MudSelect>
+            <MudTextField Variant="Variant.Outlined" @bind-Value="OfferItem.UnitPrice" Label="Unit Price" Type="Number" Required />
+            <ValidationMessage For="@(() => OfferItem.UnitPrice)" />
 
+            <MudTextField Variant="Variant.Outlined" @bind-Value="OfferItem.Quantity" Label="Quantity" Type="Number" Required />
+            <ValidationMessage For="@(() => OfferItem.Quantity)" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel" Color="Color.Secondary">Cancel</MudButton>
+            <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary">Submit</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
 
 @code {
-    FluentValueValidator<string> articleValidator = new FluentValueValidator<string>(x => x
-        .NotEmpty()
-    );
-
-    FluentValueValidator<decimal> priceValidator = new FluentValueValidator<decimal>(x => x
-        .NotEmpty()
-        .GreaterThan(0)
-    );
-
-    FluentValueValidator<int> quantityValidator = new FluentValueValidator<int>(x => x
-        .NotEmpty()
-        .GreaterThan(0)
-    );
-
     private string[] _states =
-       {
+    {
         "Alabama", "Alaska", "Arizona", "Arkansas", "California",
         "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
         "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas",
@@ -69,10 +61,26 @@
             response = await Http.PostAsJsonAsync("/offeritems", OfferItem);
         }
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            MudDialog.Close(DialogResult.Ok(true));
+            if (response.IsSuccessStatusCode)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+                Snackbar.Add("Success", MudBlazor.Severity.Success);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+            {
+                var validationMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(validationMessage, MudBlazor.Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("Failed to create/update the offer item. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
         }
     }
 }
-

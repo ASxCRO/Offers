@@ -2,11 +2,14 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
+<MudText Typo="Typo.h1">Offer number @OfferId</MudText>
+<br />
 <MudGrid>
     <MudItem xs="12">
         <MudButton Color="Color.Primary" OnClick="OpenCreateDialog">Add Offer Item</MudButton>
-        <MudTable Items="@orderItems" Striped="true" Hover="true" Bordered="true" PaginationSize="5"
+        <MudTable Items="@offerItems" Striped="true" Hover="true" Bordered="true" ItemSize="5"
                   @bind-CurrentPage="@currentPage" PageSize="@pageSize" TotalItems="@totalOfferItems">
             <HeaderContent>
                 <MudTh>Item ID</MudTh>
@@ -31,14 +34,14 @@
     </MudItem>
 </MudGrid>
 
-<MudPagination @bind-Page="currentPage" PageCount="totalPages" />
+<MudPagination @bind-Page="currentPage" Count="totalPages" SelectedChanged="OnPageChanged" />
 
 @code {
     [Parameter] public int OfferId { get; set; }
 
-    private List<OfferItemDto> orderItems = new();
+    private List<OfferItemDto> offerItems = new();
     private int currentPage = 1;
-    private const int pageSize = 5;
+    private const int pageSize = 3;
     private int totalOfferItems;
     private int totalPages;
 
@@ -49,12 +52,24 @@
 
     private async Task LoadOfferItems()
     {
-        var response = await Http.GetFromJsonAsync<GetOfferItemsResponse>($"/offers/{OfferId}/items?pageNumber={currentPage}&pageSize={pageSize}");
-        if (response != null)
+        try
         {
-            orderItems = response.OfferItems;
-            totalOfferItems = response.TotalCount;
-            totalPages = (int)Math.Ceiling((double)totalOfferItems / pageSize);
+            var response = await Http.GetAsync($"/offers/{OfferId}/items?pageNumber={currentPage}&pageSize={pageSize}");
+            if (response.IsSuccessStatusCode)
+            {
+                var offerItemsResponse = await response.Content.ReadFromJsonAsync<GetOfferItemsResponse>();
+                offerItems = offerItemsResponse.OfferItems;
+                totalOfferItems = offerItemsResponse.TotalCount;
+                totalPages = (int)Math.Ceiling((double)totalOfferItems / pageSize);
+            }
+            else
+            {
+                Snackbar.Add("Failed to fetch offer items. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add($"Error fetching offer items: {ex.Message}", MudBlazor.Severity.Error);
         }
     }
 
@@ -69,14 +84,13 @@
         var offerItem = new OfferItemDto();
         offerItem.OfferId = OfferId;
         var parameters = new DialogParameters { { "OfferItem", offerItem}, { "IsEditMode", false } };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium};
         var dialog = DialogService.Show<OfferItemDialog>("Add Offer Item", parameters, options);
         var result = await dialog.Result;
 
         if (!result.Canceled)
         {
-            var newItem = result.Data as OfferItemDto;
-            await CreateOfferItem(newItem);
+            await CreateOfferItem(offerItem);
         }
     }
 
@@ -84,41 +98,85 @@
     {
         item.OfferId = OfferId;
         var parameters = new DialogParameters { { "OfferItem", item }, { "IsEditMode", true } };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium};
         var dialog = DialogService.Show<OfferItemDialog>("Edit Offer Item", parameters, options);
         var result = await dialog.Result;
 
         if (!result.Canceled)
         {
-            var updatedItem = result.Data as OfferItemDto;
-            await UpdateOfferItem(updatedItem);
+            await UpdateOfferItem(item);
         }
     }
 
     private async Task CreateOfferItem(OfferItemDto newItem)
     {
-        var response = await Http.PostAsJsonAsync($"/offers/{OfferId}/items", newItem);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            await LoadOfferItems();
+            var response = await Http.PostAsJsonAsync($"/offeritems", newItem);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadOfferItems();
+            }
+            else if(response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+            {
+                var validationMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(validationMessage, MudBlazor.Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("Failed to create offer item. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
         }
     }
 
     private async Task UpdateOfferItem(OfferItemDto updatedItem)
     {
-        var response = await Http.PutAsJsonAsync($"/items", updatedItem);
-        if (response.IsSuccessStatusCode)
+        try
         {
-            await LoadOfferItems();
+            var response = await Http.PutAsJsonAsync($"/offeritems", updatedItem);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadOfferItems();
+                Snackbar.Add("Success", MudBlazor.Severity.Success);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+            {
+                var validationMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(validationMessage, MudBlazor.Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update offer item. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
         }
     }
 
     private async Task DeleteOfferItem(int itemId)
     {
-        var response = await Http.DeleteAsync($"/items/{itemId}");
-        if (response.IsSuccessStatusCode)
+        try
         {
-            await LoadOfferItems();
+            var response = await Http.DeleteAsync($"/offeritems/{itemId}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadOfferItems();
+                Snackbar.Add("Success", MudBlazor.Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete offer item. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
         }
     }
 }

@@ -2,6 +2,7 @@
 @inject HttpClient Http
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <MudGrid Class="p-3">
     <MudItem xs="12">
@@ -26,27 +27,55 @@
         </MudTable>
     </MudItem>
 </MudGrid>
+<MudPagination @bind-Page="currentPage" Count="totalPages" SelectedChanged="PageChanged" />
 
 @code {
     private List<OfferDto> offers = new();
     private OfferDto _newOffer = new();
     private OfferDto _selectedOffer;
+    private int currentPage = 1;
+    private const int pageSize = 3;
+    private int totalOffers;
+    private int totalPages;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadOffers();
     }
 
+    private async Task PageChanged(int page)
+    {
+        currentPage = page;
+        await LoadOffers();
+    }
+
     private async Task LoadOffers()
     {
-        var response = await Http.GetFromJsonAsync<GetOffersResponse>("/offers");
-        offers = response?.Offers ?? new();
+        try
+        {
+            var response = await Http.GetAsync($"/offers?pageNumber={currentPage}&pageSize={pageSize}");
+            if(response.IsSuccessStatusCode)
+            {
+                var offersResponse = await response.Content.ReadFromJsonAsync<GetOffersResponse>();
+                offers = offersResponse?.Offers ?? new();
+                totalOffers = offersResponse.TotalCount;
+                totalPages = (int)Math.Ceiling((double)totalOffers / pageSize);
+            }
+            else
+            {
+                Snackbar.Add("Failed to fetch offers. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
+        }
     }
 
     private async Task OpenCreateDialog()
     {
         var parameters = new DialogParameters { { "Offer", new OfferDto() } };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium };
         var dialog = DialogService.Show<OfferDialog>("Create Offer", parameters, options);
 
         var result = await dialog.Result;
@@ -59,7 +88,7 @@
     private async Task OpenEditDialog(OfferDto offer)
     {
         var parameters = new DialogParameters { { "Offer", offer } };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullScreen = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium };
         var dialog = DialogService.Show<OfferDialog>("Edit Offer", parameters, options);
 
         var result = await dialog.Result;
@@ -71,10 +100,22 @@
 
     private async Task DeleteOffer(int offerId)
     {
-        var response = await Http.DeleteAsync($"/offers/{offerId}");
-        if (response.IsSuccessStatusCode)
+        try
         {
-            await LoadOffers();
+            var response = await Http.DeleteAsync($"/offers/{offerId}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadOffers();
+                Snackbar.Add("Success", MudBlazor.Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete offer. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
         }
     }
 

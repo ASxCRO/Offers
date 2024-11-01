@@ -1,26 +1,28 @@
 ﻿@inherits ComponentBase
 @inject HttpClient Http
+@inject ISnackbar Snackbar
 
-<MudDialog>
-    <DialogContent>
-        <MudDatePicker @bind-Date="Offer.OfferDate" Label="Select Date"
-                       MinDate="new DateTime(2020, 1, 1)"
-                       MaxDate="DateTime.Now"
-                       DisplayFormat="dd.MM.yyyy"
-                       PickerVariant="PickerVariant.Dialog" 
-                       Validation="@Validator.Validation"/>
-    </DialogContent>
-    <DialogActions>
-        <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" OnClick="Submit">@(IsEditMode ? "Update" : "Create")</MudButton>
-    </DialogActions>
-</MudDialog>
+<EditForm Model="Offer" OnValidSubmit="Submit">
+    <DataAnnotationsValidator />
 
+    <MudDialog>
+        <DialogContent>
+            <MudDatePicker @bind-Date="Offer.OfferDate" Label="Select Date"
+                           MinDate="new DateTime(2020, 1, 1)"
+                           MaxDate="DateTime.Now"
+                           DateFormat="dd.MM.yyyy"
+                           PickerVariant="PickerVariant.Inline"
+                           Variant="Variant.Outlined" />
+            <ValidationMessage For="@(() => Offer.OfferDate)" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" ButtonType="ButtonType.Submit">@(IsEditMode ? "Update" : "Create")</MudButton>
+        </DialogActions>
+    </MudDialog>
+</EditForm>
 
 @code {
-    FluentValueValidator<string> Validator = new FluentValueValidator<string>(x => x
-        .NotEmpty());
-
     [CascadingParameter]
     private MudDialogInstance MudDialog { get; set; }
 
@@ -44,9 +46,26 @@
             response = await Http.PostAsJsonAsync("/offers", Offer);
         }
 
-        if (response.IsSuccessStatusCode)
+        try
         {
-            MudDialog.Close(DialogResult.Ok(true));
+            if (response.IsSuccessStatusCode)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+                Snackbar.Add("Success", MudBlazor.Severity.Success);
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotAcceptable)
+            {
+                var validationMessage = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(validationMessage, MudBlazor.Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("Failed to create/update the offer. Please try again.", MudBlazor.Severity.Error);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Snackbar.Add("An error occurred while trying to reach the server. Please check your connection.", MudBlazor.Severity.Error);
         }
     }
 }

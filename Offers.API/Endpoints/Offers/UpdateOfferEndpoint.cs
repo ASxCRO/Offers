@@ -2,6 +2,7 @@
 using FluentValidation;
 using MediatR;
 using Offers.Shared.Commands;
+using System.Net;
 
 namespace Offers.API.Endpoints.Offers
 {
@@ -27,7 +28,8 @@ namespace Offers.API.Endpoints.Offers
             var validationResult = await _validator.ValidateAsync(req);
             if (!validationResult.IsValid)
             {
-                await SendErrorsAsync();
+                var validationMessages = string.Join(", ", validationResult.Errors.Select(x => x.ErrorMessage));
+                await SendStringAsync(validationMessages, (int)HttpStatusCode.NotAcceptable);
                 return;
             }
 

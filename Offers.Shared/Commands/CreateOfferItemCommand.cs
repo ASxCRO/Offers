@@ -8,7 +8,7 @@ namespace Offers.Shared.Commands
         public int OfferId { get; set; }
         public string ArticleName { get; set; }
         public decimal UnitPrice { get; set; }
-        public int Quantity { get; set; } // Validation: must be > 0
+        public int Quantity { get; set; } 
     }
 
     public class CreateOfferItemCommandValidator : AbstractValidator<CreateOfferItemCommand>

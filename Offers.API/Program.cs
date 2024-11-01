@@ -38,5 +38,6 @@ var app = builder.Build();
 
 app.UseCors("AllowCors");
 app.UseFastEndpoints();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();
